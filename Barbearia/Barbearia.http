@@ -1,0 +1,6 @@
+@Barbearia_HostAddress = http://localhost:5237
+
+GET {{Barbearia_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
