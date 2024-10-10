@@ -37,18 +37,33 @@ namespace Barbearia.Services.Point
                 schedule.CutTheHair = true;
                 _context.Schedules.Update(schedule);
 
-                var points = new PointModel()
-                {
-                    Amount = 1,
-                    DateTime = DateTime.Now,
-                    UserId = schedule.UserId
-                };
 
-                await _context.Points.AddAsync(points);
+                var existingPoints = await _context.Points.FirstOrDefaultAsync(p => p.UserId == schedule.UserId);
+
+                if (existingPoints != null)
+                {
+
+                    existingPoints.Amount += 1;
+                    _context.Points.Update(existingPoints);
+                    response.Dados = existingPoints;
+                }
+                else
+                {
+
+                    var points = new PointModel()
+                    {
+                        Amount = 1,
+                        DateTime = DateTime.Now,
+                        UserId = schedule.UserId
+                    };
+
+                    _context.Points.Add(points);
+                    response.Dados = points;
+                }
+
                 await _context.SaveChangesAsync();
 
-                response.Dados = points;
-                response.Message = "Pontos criados e agendamento atualizado!";
+                response.Message = "Pontos atualizados e agendamento registrado!";
                 return response;
             }
             catch (Exception ex)

@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Barbearia.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241009235035_AddImageFieldInProduct")]
-    partial class AddImageFieldInProduct
+    [Migration("20241010222131_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -79,8 +79,7 @@ namespace Barbearia.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Points");
                 });
@@ -189,8 +188,8 @@ namespace Barbearia.Migrations
             modelBuilder.Entity("Barbearia.Models.PointModel", b =>
                 {
                     b.HasOne("Barbearia.Models.UserModel", "User")
-                        .WithOne("Points")
-                        .HasForeignKey("Barbearia.Models.PointModel", "UserId")
+                        .WithMany("Points")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -229,8 +228,7 @@ namespace Barbearia.Migrations
 
             modelBuilder.Entity("Barbearia.Models.UserModel", b =>
                 {
-                    b.Navigation("Points")
-                        .IsRequired();
+                    b.Navigation("Points");
 
                     b.Navigation("Schedules");
                 });

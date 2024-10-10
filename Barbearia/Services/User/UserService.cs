@@ -230,7 +230,7 @@ namespace Barbearia.Services.User
                     return response;
                 }
 
-                var pointsAmount = user.Points?.Amount ?? 0;
+                var pointsAmount = user.Points?.Sum(p => p.Amount) ?? 0;
 
                 var userPointsDto = new UserPointsDto
                 {
@@ -241,6 +241,7 @@ namespace Barbearia.Services.User
 
                 response.Dados = userPointsDto;
                 response.Message = "Pontos do usuário coletados com sucesso.";
+                response.Status = true;
                 return response;
             }
             catch (Exception ex)

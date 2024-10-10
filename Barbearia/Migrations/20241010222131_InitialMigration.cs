@@ -36,6 +36,7 @@ namespace Barbearia.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "longtext", nullable: false),
+                    Image = table.Column<byte[]>(type: "longblob", nullable: false),
                     AmountInPoints = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -156,8 +157,7 @@ namespace Barbearia.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Points_UserId",
                 table: "Points",
-                column: "UserId",
-                unique: true);
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Schedules_BarberId",

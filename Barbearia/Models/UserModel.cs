@@ -15,6 +15,6 @@ namespace Barbearia.Models
         [JsonIgnore]
         public ICollection<ScheduleModel> Schedules { get; set; }
         [JsonIgnore]
-        public PointModel Points { get; set; }
+        public ICollection<PointModel> Points { get; set; }
     }
 }
