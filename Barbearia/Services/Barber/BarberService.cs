@@ -44,7 +44,7 @@ namespace Barbearia.Services.Barber
 
             try
             {
-                var barber = _context.Barbers.FirstOrDefault(b => b.Id == id);
+                var barber = await _context.Barbers.FirstOrDefaultAsync(b => b.Id == id);
 
                 if (barber == null)
                 {

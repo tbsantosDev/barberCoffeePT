@@ -11,6 +11,7 @@ using System.Globalization;
 using Microsoft.Extensions.Options;
 using Barbearia.Infra;
 using Barbearia.Services.Point;
+using Barbearia.Services.Product;
 
 Env.Load(); // Carrega as variáveis do arquivo .env
 
@@ -69,6 +70,7 @@ builder.Services.AddScoped<IUserInterface, UserService>();
 builder.Services.AddScoped<IBarberInterface, BarberService>();
 builder.Services.AddScoped<IScheduleInterface, ScheduleService>();
 builder.Services.AddScoped<IPointInterface, PointService>();
+builder.Services.AddScoped<IProductInterface, ProductService>();
 
 builder.Services.AddHttpContextAccessor();
 

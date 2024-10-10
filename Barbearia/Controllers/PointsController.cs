@@ -32,7 +32,7 @@ namespace Barbearia.Controllers
             return Ok(point);
         }
 
-        [HttpGet("DeletePoint/{id}")]
+        [HttpDelete("DeletePoint/{id}")]
         public async Task<ActionResult<ResponseModel<List<PointModel>>>> DeletePoint(int id)
         {
             var point = await _pointInterface.DeletePoint(id);
