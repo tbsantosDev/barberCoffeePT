@@ -4,16 +4,19 @@ using Barbearia.Models;
 using Barbearia.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace Barbearia.Services.User
 {
     public class UserService : IUserInterface
     {
         private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(AppDbContext context)
+        public UserService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResponseModel<List<UserModel>>> CreateAdminUser(CreateUserDto createUserAdminDto)
@@ -36,8 +39,10 @@ namespace Barbearia.Services.User
 
                     var user = new UserModel()
                     {
-                        Name = createUserAdminDto.Name,
+                        FirstName = createUserAdminDto.FirstName,
+                        LastName = createUserAdminDto.LastName,
                         Email = createUserAdminDto.Email,
+                        PhoneNumber = createUserAdminDto.PhoneNumber,
                         Password = passwordHash,
                         Role = (RoleEnums.Admin),
                         EmailConfirmationToken = Guid.NewGuid().ToString(),
@@ -181,25 +186,73 @@ namespace Barbearia.Services.User
             }
         }
 
-        public async Task<ResponseModel<List<UserModel>>> UpdateUser(UpdateUserDto updateUserDto)
+        public async Task<ResponseModel<UserModel>> LoggedUser()
         {
-            ResponseModel<List<UserModel>> response = new ResponseModel<List<UserModel>> ();
+            ResponseModel<UserModel> response = new ResponseModel<UserModel>();
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == updateUserDto.Id);
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    response.Message = "Usuário não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var userId = int.Parse(userIdClaim.Value);
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    response.Message = "Usuário não localizado!";
+                    return response;
+                }
+
+
+                response.Dados = user;
+                response.Message = "Dados do Usuário coletado com sucesso!";
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                response.Message = ex.Message;
+                response.Status = false;
+                return response;
+            }
+        }
+
+        public async Task<ResponseModel<UserModel>> UpdateUser(UpdateUserDto updateUserDto)
+        {
+            ResponseModel<UserModel> response = new ResponseModel<UserModel> ();
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    response.Message = "Usuário não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var userId = int.Parse(userIdClaim.Value);
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
                     response.Message = "Nenhum usuário localizado!";
                     return response;
                 }
-                user.Name = updateUserDto.Name;
+
+                user.FirstName = updateUserDto.FirstName;
+                user.LastName = updateUserDto.LastName;
+                user.PhoneNumber = updateUserDto.PhoneNumber;
                 user.Email = updateUserDto.Email;
-                user.Role = updateUserDto.Role;
 
                 _context.Update(user);
                 await _context.SaveChangesAsync();
 
-                response.Dados = await _context.Users.ToListAsync();
+                response.Dados = user;
                 response.Message = "Dados do Usuário editado com sucesso!";
                 return response;
 
@@ -212,30 +265,83 @@ namespace Barbearia.Services.User
             }
         }
 
-        public async Task<ResponseModel<UserPointsDto>> ListPointsByUserId(int userId)
+        public async Task<ResponseModel<UserModel>> UpdateUserPassword(UpdateUserPasswordDto updateUserPasswordDto)
         {
-            ResponseModel<UserPointsDto> response = new ResponseModel<UserPointsDto>();
-
+            ResponseModel<UserModel> response = new ResponseModel<UserModel>();
             try
             {
-                var user = await _context.Users
-                    .Where(u => u.Id == userId)
-                    .Include(u => u.Points)
-                    .FirstOrDefaultAsync();
-
-                if (user == null)
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
                 {
                     response.Message = "Usuário não encontrado.";
                     response.Status = false;
                     return response;
                 }
 
+                var userId = int.Parse(userIdClaim.Value);
+
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    response.Message = "Nenhum usuário localizado!";
+                    return response;
+                }
+
+                if (updateUserPasswordDto.NewPassword != updateUserPasswordDto.PasswordConfirmation)
+                {
+                    response.Message = "As senhas não conferem, por favor, digite novamente!";
+                    response.Status = false;
+                    return response;
+                }
+
+                var passwordHash = BCrypt.Net.BCrypt.HashPassword(updateUserPasswordDto.NewPassword);
+                user.Password = passwordHash;
+      
+
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+
+                response.Dados = user;
+                response.Message = "Dados do Usuário editado com sucesso!";
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                response.Message = ex.Message;
+                response.Status = false;
+                return response;
+            }
+        }
+
+        public async Task<ResponseModel<UserPointsDto>> ListPointsByUser()
+        {
+            ResponseModel<UserPointsDto> response = new ResponseModel<UserPointsDto>();
+
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    response.Message = "Usuário não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var userId = int.Parse(userIdClaim.Value);
+
+                var user = await _context.Users
+                    .Where(u => u.Id == userId)
+                    .Include(u => u.Points)
+                    .FirstOrDefaultAsync();
+
                 var pointsAmount = user.Points?.Sum(p => p.Amount) ?? 0;
 
                 var userPointsDto = new UserPointsDto
                 {
-                    Id = user.Id,
-                    Name = user.Name,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
                     PointsAmount = pointsAmount
                 };
 

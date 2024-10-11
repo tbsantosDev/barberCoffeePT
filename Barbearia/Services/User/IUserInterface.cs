@@ -7,11 +7,13 @@ namespace Barbearia.Services.User
     {
         Task<ResponseModel<List<UserModel>>> ListUsersClient();
         Task<ResponseModel<List<UserModel>>> ListUsersAdmin();
-        Task<ResponseModel<UserPointsDto>> ListPointsByUserId(int userId);
+        Task<ResponseModel<UserPointsDto>> ListPointsByUser();
         Task<ResponseModel<UserModel>> FindUserById(int id);
         Task<ResponseModel<UserModel>> FindUserByIdSchedule(int id);
         Task<ResponseModel<List<UserModel>>> CreateAdminUser(CreateUserDto createUserAdminDto);
-        Task<ResponseModel<List<UserModel>>> UpdateUser(UpdateUserDto updateUserDto);
+        Task<ResponseModel<UserModel>> LoggedUser();
+        Task<ResponseModel<UserModel>> UpdateUser(UpdateUserDto updateUserDto);
+        Task<ResponseModel<UserModel>> UpdateUserPassword(UpdateUserPasswordDto updateUserPasswordDto);
         Task<ResponseModel<List<UserModel>>> DeleteUser(int id);
     }
 }

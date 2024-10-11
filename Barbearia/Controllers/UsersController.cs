@@ -32,13 +32,6 @@ namespace Barbearia.Controllers
             return Ok(users);
         }
 
-        [HttpGet("ListPointsByUserId")]
-        public async Task<ActionResult<ResponseModel<List<UserPointsDto>>>> ListPointsByUserId(int userId)
-        {
-            var userPoint = await _userInterface.ListPointsByUserId(userId);
-            return Ok(userPoint);
-        }
-
         [HttpGet("FindUserById/{id}")]
         
         public async Task<ActionResult<ResponseModel<UserModel>>> FindUserById(int id)
@@ -60,10 +53,31 @@ namespace Barbearia.Controllers
             return Ok(user);
         }
 
+        [HttpGet("LoggedUser")]
+        public async Task<ActionResult<ResponseModel<UserModel>>> LoggedUser()
+        {
+            var user = await _userInterface.LoggedUser();
+            return Ok(user);
+        }
+
+        [HttpGet("ListPointsByUser")]
+        public async Task<ActionResult<ResponseModel<List<UserPointsDto>>>> ListPointsByUser()
+        {
+            var userPoint = await _userInterface.ListPointsByUser();
+            return Ok(userPoint);
+        }
+
         [HttpPut("UpdateUser")]
-        public async Task<ActionResult<ResponseModel<List<UserModel>>>> UpdateUser(UpdateUserDto updateUserDto)
+        public async Task<ActionResult<ResponseModel<UserModel>>> UpdateUser(UpdateUserDto updateUserDto)
         {
             var user = await _userInterface.UpdateUser(updateUserDto);
+            return Ok(user);
+        }
+
+        [HttpPut("UpdateUserPassword")]
+        public async Task<ActionResult<ResponseModel<UserModel>>> UpdateUserPassword(UpdateUserPasswordDto updateUserPasswordDto)
+        {
+            var user = await _userInterface.UpdateUserPassword(updateUserPasswordDto);
             return Ok(user);
         }
 

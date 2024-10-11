@@ -77,7 +77,8 @@ namespace Barbearia.Controllers
 
                 var user = new UserModel()
                 {
-                    Name = createUserClientDto.Name,
+                    FirstName = createUserClientDto.FirstName,
+                    LastName = createUserClientDto.LastName,
                     Email = createUserClientDto.Email,
                     Password = passwordHash,
                     Role = (Models.Enums.RoleEnums.Client),
@@ -141,7 +142,7 @@ namespace Barbearia.Controllers
                     {
                         From = new MailAddress("seu-email@dominio.com", "BarberShop"),
                         Subject = "Confirmação de E-mail",
-                        Body = $"Olá {user.Name},\n\nPor favor, confirme seu e-mail clicando no link abaixo:\n{confirmationLink}",
+                        Body = $"Olá {user.FirstName},\n\nPor favor, confirme seu e-mail clicando no link abaixo:\n{confirmationLink}",
                         IsBodyHtml = false
                     };
                     mailMessage.To.Add(user.Email);

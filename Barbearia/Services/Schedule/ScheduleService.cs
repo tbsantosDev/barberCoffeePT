@@ -34,7 +34,19 @@ namespace Barbearia.Services.Schedule
                 var userId = int.Parse(userIdClaim.Value);
                 var dateTime = createScheduleDto.DateTime;
 
-                // Verifica se o dia é um dia útil
+                // cliente já tem horario marcado para este dia?.
+                var existingSchedule = await _context.Schedules
+                .Where(s => s.UserId == userId && s.DateTime.Date == dateTime.Date)
+                .FirstOrDefaultAsync();
+
+                if (existingSchedule != null)
+                {
+                    response.Message = "Você já tem um agendamento para este dia.";
+                    response.Status = false;
+                    return response;
+                }
+
+                // é um dia útil?
                 if (dateTime.DayOfWeek == DayOfWeek.Sunday)
                 {
                     response.Message = "Agendamentos não estão disponíveis aos domingos.";
@@ -42,7 +54,7 @@ namespace Barbearia.Services.Schedule
                     return response;
                 }
 
-                // Verifica se o horário está disponível
+                // horário está disponível?
                 bool isAvailable = await IsSlotAvailable(dateTime, createScheduleDto.BarberId);
                 if (!isAvailable)
                 {
@@ -50,6 +62,7 @@ namespace Barbearia.Services.Schedule
                     response.Status = false;
                     return response;
                 }
+
 
                 var schedule = new ScheduleModel()
                 {
@@ -229,10 +242,10 @@ namespace Barbearia.Services.Schedule
 
         public async Task<bool> IsSlotAvailable(DateTime dateTime, int barberId)
         {
-            // Verifica se o dia é um dia útil (segunda a sábado)
+            // dia util?
             if (dateTime.DayOfWeek == DayOfWeek.Sunday)
             {
-                return false; // Se for domingo, retorna false
+                return false;
             }
 
             var reservedSlot = await _context.Schedules

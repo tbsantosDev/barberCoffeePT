@@ -18,8 +18,8 @@ Env.Load(); // Carrega as variáveis do arquivo .env
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar a cultura brasileira (pt-BR)
-var cultureInfo = new CultureInfo("pt-BR");
+// Configurar a cultura para português de Portugal (pt-PT)
+var cultureInfo = new CultureInfo("pt-PT");
 CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
 CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 

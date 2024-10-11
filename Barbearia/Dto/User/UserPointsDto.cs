@@ -1,9 +1,14 @@
-﻿namespace Barbearia.Dto.User
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Barbearia.Dto.User
 {
     public class UserPointsDto
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        [Required]
+        public string FirstName { get; set; }
+        [Required]
+        public string LastName { get; set; }
+        [Required]
         public int PointsAmount { get; set; }
     }
 }
