@@ -1,16 +1,107 @@
 ﻿using Barbearia.Data;
 using Barbearia.Models;
+using Barbearia.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Barbearia.Services.Exchange
 {
     public class ExchangeService : IExchangeInterface
     {
         private readonly AppDbContext _context;
-        public ExchangeService(AppDbContext context)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ExchangeService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
+
+        public async Task<ResponseModel<ExchangeModel>> ConfirmExchange(int exchangeId)
+        {
+            ResponseModel<ExchangeModel> response = new ResponseModel<ExchangeModel>();
+
+            try
+            {
+                // Carrega a troca junto com o usuário e pontos
+                var exchange = await _context.Exchanges
+                    .Include(e => e.User)
+                    .ThenInclude(u => u.Points)
+                    .Include(e => e.Product)
+                    .FirstOrDefaultAsync(e => e.Id == exchangeId);
+
+                if (exchange == null)
+                {
+                    response.Message = "Troca não encontrada.";
+                    response.Status = false;
+                    return response;
+                }
+
+                if (exchange.Status == ExchangeEnums.Confirmed)
+                {
+                    response.Message = "Esta troca já foi confirmada.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var user = exchange.User;
+                var product = exchange.Product;
+
+                if (user == null || user.Points == null)
+                {
+                    response.Message = "Usuário ou pontos não encontrados.";
+                    response.Status = false;
+                    return response;
+                }
+
+                // Calcula o total de pontos
+                var totalPoints = user.Points.Sum(p => p.Amount);
+                if (totalPoints < product.AmountInPoints)
+                {
+                    response.Message = "Usuário não possui pontos suficientes.";
+                    response.Status = false;
+                    return response;
+                }
+
+                // Subtração dos pontos
+                var pointsToDeduct = product.AmountInPoints;
+                foreach (var point in user.Points.OrderBy(p => p.DateTime))
+                {
+                    if (pointsToDeduct <= 0) break;
+
+                    if (point.Amount >= pointsToDeduct)
+                    {
+                        point.Amount -= pointsToDeduct;
+                        pointsToDeduct = 0;
+                    }
+                    else
+                    {
+                        pointsToDeduct -= point.Amount;
+                        point.Amount = 0;
+                    }
+                }
+
+                // Atualiza o status da troca
+                exchange.Status = ExchangeEnums.Confirmed;
+                exchange.ConfirmedAt = DateTime.Now;
+
+                // Salva as alterações no banco
+                _context.Exchanges.Update(exchange);
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                response.Dados = exchange;
+                response.Message = "Troca confirmada e pontos subtraídos com sucesso!";
+                response.Status = true;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.Message = $"Erro: {ex.Message}";
+                response.Status = false;
+                return response;
+            }
+        }
+
 
         public async Task<ResponseModel<ExchangeModel>> CreateExchange(int userId, int productId)
         {
@@ -42,23 +133,17 @@ namespace Barbearia.Services.Exchange
                     return response;
                 }
 
-                var pointsToDeduct = product.AmountInPoints;
+                var hasPendingExchange = await _context.Exchanges
+                    .AnyAsync(e => e.UserId == userId && e.ProductId == productId && e.Status == ExchangeEnums.Pending);
 
-                foreach (var point in user.Points.OrderBy(p => p.DateTime))
+                if (hasPendingExchange)
                 {
-                    if (pointsToDeduct <= 0) break;
-
-                    if (point.Amount >= pointsToDeduct)
-                    {
-                        point.Amount -= pointsToDeduct;
-                        pointsToDeduct = 0;
-                    }
-                    else
-                    {
-                        pointsToDeduct -= point.Amount;
-                        point.Amount = 0;
-                    }
+                    response.Message = "Você já tem uma troca pendente para este item.";
+                    response.Status = false;
+                    return response;
                 }
+
+                var token = GenerateToken();
 
                 var exchange = new ExchangeModel
                 {
@@ -66,16 +151,16 @@ namespace Barbearia.Services.Exchange
                     UserId = userId,
                     ProductId = productId,
                     User = user,
-                    Product = product
+                    Product = product,
+                    Token = token,
+                    Status = ExchangeEnums.Pending
                 };
 
                 _context.Exchanges.Add(exchange);
-
-                _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
                 response.Dados = exchange;
-                response.Message = "Troca realizada com sucesso!";
+                response.Message = "Troca Registrada, aguarde confirmação do Administrador, token gerado: " + token;
                 response.Status = true;
                 return response;
             }
@@ -87,12 +172,23 @@ namespace Barbearia.Services.Exchange
             }
         }
 
-        public async Task<ResponseModel<List<ExchangeModel>>> GetExchangeByUserId(DateTime dateIni, DateTime dateFim, int userId)
+
+        public async Task<ResponseModel<List<ExchangeModel>>> GetExchangeByCurrentUser(DateTime dateIni, DateTime dateFim)
         {
             ResponseModel<List<ExchangeModel>> response = new ResponseModel<List<ExchangeModel>>();
 
             try
             {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    response.Message = "Usuário não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var userId = int.Parse(userIdClaim.Value);
+
                 var exchanges = await _context.Exchanges
                     .Where(d => d.ExchangeDate >= dateIni && d.ExchangeDate <= dateFim && d.UserId == userId)
                     .Include(d => d.User)
@@ -105,7 +201,7 @@ namespace Barbearia.Services.Exchange
                 }
 
                 response.Dados = exchanges;
-                response.Message = "Todos os registros de trocas deste cliente no determinado periodo coletados.";
+                response.Message = "Todos os registros de trocas coletados.";
                 return response;
             }
             catch (Exception ex)
@@ -138,6 +234,38 @@ namespace Barbearia.Services.Exchange
                 response.Status = false;
                 return response;
             }
+        }
+
+        public async Task<ResponseModel<ExchangeModel>> GetExchangeByToken(string token)
+        {
+            ResponseModel<ExchangeModel> response = new ResponseModel<ExchangeModel>();
+
+            try
+            {
+                var getToken = await _context.Exchanges.FirstOrDefaultAsync(d => d.Token == token);
+                if (token == null)
+                {
+                    response.Message = "Token não encontrado!";
+                    return response;
+                }
+
+                response.Dados = getToken;
+                response.Message = "Token localizado com sucesso!";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.Message = ex.Message;
+                response.Status = false;
+                return response;
+            }
+        }
+        private static string GenerateToken(int length = 6)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }

@@ -45,7 +45,8 @@ namespace Barbearia.Controllers
                 Subject = new ClaimsIdentity(new Claim[]
                 {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, model.Email)
+                new Claim(ClaimTypes.Email, model.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -106,9 +107,10 @@ namespace Barbearia.Controllers
             return response;
         }
 
-        [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(string token)
+        [HttpPatch("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
         {
+
             var user = await _context.Users.SingleOrDefaultAsync(u => u.EmailConfirmationToken == token);
             if (user == null)
             {
@@ -124,23 +126,35 @@ namespace Barbearia.Controllers
             return Ok("E-mail confirmado com sucesso!");
         }
 
+
+        public class ConfirmEmailRequest
+        {
+            public string Token { get; set; }
+        }
+
         private async Task SendConfirmationEmail(UserModel user)
         {
             try
             {
-                var confirmationLink = $"https://seusite.com/confirm-email?token={user.EmailConfirmationToken}";
+                var confirmationLink = $"http://localhost:3000/confirmEmail?token={user.EmailConfirmationToken}";
+
+                var appPassword = Environment.GetEnvironmentVariable("APP_PASSWORD_GOOGLE");
+                if (string.IsNullOrEmpty(appPassword))
+                {
+                    Console.WriteLine("Senha APP não configurada");
+                }
 
                 // Configurar o cliente SMTP
-                using (var smtpClient = new SmtpClient("smtp.seuservidor.com"))
+                using (var smtpClient = new SmtpClient("smtp.gmail.com"))
                 {
                     smtpClient.Port = 587; // Porta para envio SMTP, geralmente 587 ou 465
-                    smtpClient.Credentials = new NetworkCredential("seu-email@dominio.com", "sua-senha");
+                    smtpClient.Credentials = new NetworkCredential("ago14santos98@gmail.com", appPassword);
                     smtpClient.EnableSsl = true;
 
                     // Configurar o e-mail a ser enviado
                     var mailMessage = new MailMessage
                     {
-                        From = new MailAddress("seu-email@dominio.com", "BarberShop"),
+                        From = new MailAddress("ago14santos98@gmail.com", "Café com barba"),
                         Subject = "Confirmação de E-mail",
                         Body = $"Olá {user.FirstName},\n\nPor favor, confirme seu e-mail clicando no link abaixo:\n{confirmationLink}",
                         IsBodyHtml = false

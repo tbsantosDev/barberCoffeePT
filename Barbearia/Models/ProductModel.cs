@@ -14,5 +14,9 @@ namespace Barbearia.Models
         public int AmountInPoints { get; set; }
         [JsonIgnore]
         public ExchangeModel Exchanges { get; set; }
+        //chave estrangeira para a categoria
+        public int CategoryId { get; set; }
+        [JsonIgnore]
+        public CategoryModel Category { get; set; }
     }
 }

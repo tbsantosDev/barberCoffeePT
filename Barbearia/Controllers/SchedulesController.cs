@@ -22,9 +22,16 @@ namespace Barbearia.Controllers
         }
 
         [HttpGet("ListSchedules")]
-        public async Task<ActionResult<ResponseModel<List<ScheduleModel>>>> ListSchedules(DateTime dateIni, DateTime dateFim, int baberId)
+        public async Task<ActionResult<ResponseModel<List<ScheduleModel>>>> ListSchedules(DateTime dateIni, DateTime dateFim, int barberId)
         {
-            var schedules = await _scheduleInterface.ListSchedules(dateIni, dateFim, baberId);
+            var schedules = await _scheduleInterface.ListSchedules(dateIni, dateFim, barberId);
+            return Ok(schedules);
+        }
+
+        [HttpGet("ListSchedulesByCurrentUserId")]
+        public async Task<ActionResult<ResponseModel<List<ScheduleModel>>>> ListSchedulesByCurrentUserId(DateTime dateIni, DateTime dateFim)
+        {
+            var schedules = await _scheduleInterface.ListSchedulesByCurrentUserId(dateIni, dateFim);
             return Ok(schedules);
         }
 

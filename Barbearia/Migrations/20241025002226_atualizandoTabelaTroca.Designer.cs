@@ -3,6 +3,7 @@ using System;
 using Barbearia.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Barbearia.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241025002226_atualizandoTabelaTroca")]
+    partial class atualizandoTabelaTroca
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,9 +70,8 @@ namespace Barbearia.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("Token")
+                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -171,6 +173,7 @@ namespace Barbearia.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("EmailConfirmationToken")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<bool>("EmailConfirmed")

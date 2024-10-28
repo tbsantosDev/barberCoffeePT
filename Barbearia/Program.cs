@@ -8,11 +8,11 @@ using Barbearia.Services.Barber;
 using DotNetEnv;
 using Barbearia.Services.Schedule;
 using System.Globalization;
-using Microsoft.Extensions.Options;
 using Barbearia.Infra;
 using Barbearia.Services.Point;
 using Barbearia.Services.Product;
 using Barbearia.Services.Exchange;
+using Barbearia.Services.Category;
 
 Env.Load(); // Carrega as variáveis do arquivo .env
 
@@ -30,7 +30,6 @@ var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING"
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseMySQL(connectionString);
-
 });
 
 // Configurar chave JWT
@@ -60,11 +59,29 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Configuração do CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins", builder =>
+    {
+        builder.WithOrigins("http://localhost:3000") // Substitua pelo domínio que você quer permitir
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+
+    // Para desenvolvimento, se quiser liberar todas as origens (não recomendado em produção)
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
+
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructionSwagger();
 
 builder.Services.AddScoped<IUserInterface, UserService>();
@@ -72,13 +89,13 @@ builder.Services.AddScoped<IBarberInterface, BarberService>();
 builder.Services.AddScoped<IScheduleInterface, ScheduleService>();
 builder.Services.AddScoped<IPointInterface, PointService>();
 builder.Services.AddScoped<IProductInterface, ProductService>();
+builder.Services.AddScoped<ICategoryInterface, CategoryService>();
 builder.Services.AddScoped<IExchangeInterface, ExchangeService>();
 
 builder.Services.AddHttpContextAccessor();
 
-
-
 var app = builder.Build();
+await SeedData.SeedAdminUserAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -88,6 +105,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Usar a política de CORS antes da autenticação
+app.UseCors("AllowAll"); // Aplique a política que você configurou, ou "AllowAll" para desenvolvimento
 
 app.UseAuthentication();
 app.UseAuthorization();

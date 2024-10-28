@@ -4,6 +4,8 @@ using Barbearia.Models;
 using Barbearia.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Net.Mail;
+using System.Net;
 using System.Security.Claims;
 
 namespace Barbearia.Services.User
@@ -247,7 +249,6 @@ namespace Barbearia.Services.User
                 user.FirstName = updateUserDto.FirstName;
                 user.LastName = updateUserDto.LastName;
                 user.PhoneNumber = updateUserDto.PhoneNumber;
-                user.Email = updateUserDto.Email;
 
                 _context.Update(user);
                 await _context.SaveChangesAsync();
@@ -313,6 +314,105 @@ namespace Barbearia.Services.User
                 response.Status = false;
                 return response;
             }
+        }
+
+        public async Task<ResponseModel<string>> RequestPasswordReset(string email)
+        {
+            var response = new ResponseModel<string>();
+
+            try
+            {
+                var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == email);
+                if (user == null)
+                {
+                    response.Message = "E-mail não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                user.PasswordResetToken = Guid.NewGuid().ToString();
+                user.PasswordResetTokenExpires = DateTime.UtcNow.AddHours(1);
+
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+
+                var resetLink = $"http://localhost:3000/forgetPassword?token={user.PasswordResetToken}&email={user.Email}";
+
+                var appPassword = Environment.GetEnvironmentVariable("APP_PASSWORD_GOOGLE");
+                if (string.IsNullOrEmpty(appPassword))
+                {
+                    response.Message = "Erro interno: Senha do aplicativo não configurada.";
+                    response.Status = false;
+                    return response;
+                }
+
+                // Configurar o cliente SMTP
+                using (var smtpClient = new SmtpClient("smtp.gmail.com"))
+                {
+                    smtpClient.Port = 587; // Porta para envio SMTP, geralmente 587 ou 465
+                    smtpClient.Credentials = new NetworkCredential("ago14santos98@gmail.com", appPassword);
+                    smtpClient.EnableSsl = true;
+
+                    // Configurar o e-mail a ser enviado
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress("ago14santos98@gmail.com", "Café com barba"),
+                        Subject = "Redefinição de senha",
+                        Body = $"Olá {user.FirstName},\n\nPor favor, redefina sua senha clicando no link abaixo:\n{resetLink}",
+                        IsBodyHtml = false
+                    };
+                    mailMessage.To.Add(user.Email);
+
+                    // Enviar o e-mail
+                    await smtpClient.SendMailAsync(mailMessage);
+                }
+
+                response.Message = "E-mail de redefinição de senha enviado.";
+                response.Status = true;
+            }
+            catch (Exception ex)
+            {
+                response.Message = $"Erro interno: {ex.Message}";
+                response.Status = false;
+            }
+
+            return response;
+        }
+
+        public async Task<ResponseModel<string>> ResetPassword(string email, string token, string newPassword)
+        {
+            var response = new ResponseModel<string>();
+
+            try
+            {
+                var user = await _context.Users
+                    .SingleOrDefaultAsync(u => u.Email == email && u.PasswordResetToken == token);
+
+                if (user == null || user.PasswordResetTokenExpires < DateTime.UtcNow)
+                {
+                    response.Message = "Token inválido ou expirado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                // Atualizar a senha
+                user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                user.PasswordResetToken = null;
+                user.PasswordResetTokenExpires = null;
+
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+
+                response.Message = "Senha redefinida com sucesso.";
+                response.Status = true;
+            }
+            catch (Exception ex)
+            {
+                response.Message = $"Erro interno: {ex.Message}";
+                response.Status = false;
+            }
+
+            return response;
         }
 
         public async Task<ResponseModel<UserPointsDto>> ListPointsByUser()

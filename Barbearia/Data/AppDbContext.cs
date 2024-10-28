@@ -20,9 +20,12 @@ namespace Barbearia.Data
                 .HasForeignKey(s => s.BarberId);
 
             base.OnModelCreating(modelBuilder);
+
         }
+
         public DbSet<PointModel> Points { get; set; }
         public DbSet<ProductModel> Products { get; set; }
+        public DbSet<CategoryModel> Categories { get; set; }
         public DbSet<ExchangeModel> Exchanges { get; set; }
 
     }

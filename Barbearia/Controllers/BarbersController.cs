@@ -40,7 +40,7 @@ namespace Barbearia.Controllers
             return Ok(barber);
         }
 
-        [HttpDelete("DeleteBarber")]
+        [HttpDelete("DeleteBarber/{id}")]
         public async Task<ActionResult<ResponseModel<List<BarberModel>>>> DeleteBarber(int id)
         {
             var barber = await _barberInterface.DeleteBarber(id);

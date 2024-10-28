@@ -24,18 +24,39 @@ namespace Barbearia.Controllers
             return Ok(exchanges);
         }
 
-        [HttpGet("GetExchangeByUserId")]
-        public async Task<ActionResult<ResponseModel<List<ExchangeModel>>>> GetExchangeByUserId(DateTime dateIni, DateTime dateFim, int userId)
+        [HttpGet("GetExchangeByCurrentUser")]
+        public async Task<ActionResult<ResponseModel<List<ExchangeModel>>>> GetExchangeByCurrentUser(DateTime dateIni, DateTime dateFim)
         {
-            var exchanges = await _exchangeInterface.GetExchangeByUserId(dateIni, dateFim, userId);
+            var exchanges = await _exchangeInterface.GetExchangeByCurrentUser(dateIni, dateFim);
             return Ok(exchanges);
         }
 
-        [HttpPost("CreateExchange")]
-        public async Task<ActionResult<ResponseModel<List<ExchangeModel>>>> CreateExchange(int userId, int productId)
+        [HttpGet("GetExchangeByToken")]
+        public async Task<ActionResult<ResponseModel<ExchangeModel>>> GetExchangeByToken(string token)
         {
-            var exchange = await _exchangeInterface.CreateExchange(userId, productId);
+            Console.WriteLine($"Parametro de localizar token: {token}");
+            var exchange = await _exchangeInterface.GetExchangeByToken(token);
             return Ok(exchange);
+        }
+
+        [HttpPost("CreateExchange")]
+        public async Task<ActionResult<ResponseModel<List<ExchangeModel>>>> CreateExchange([FromBody] ExchangeRequestModel request)
+        {
+            var exchange = await _exchangeInterface.CreateExchange(request.UserId, request.ProductId);
+            return Ok(exchange);
+        }
+
+        [HttpPut("ConfirmExchange")]
+        public async Task<ActionResult<ResponseModel<List<ExchangeModel>>>> ConfirmExchange(int exchangeId)
+        {
+            var exchange = await _exchangeInterface.ConfirmExchange(exchangeId);
+            return Ok(exchange);
+        }
+
+        public class ExchangeRequestModel
+        {
+            public int UserId { get; set; }
+            public int ProductId { get; set; }
         }
     }
 }

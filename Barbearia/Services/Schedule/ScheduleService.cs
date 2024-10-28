@@ -1,7 +1,9 @@
 ﻿using Barbearia.Data;
 using Barbearia.Dto.Schedule;
+using Barbearia.Dto.User;
 using Barbearia.Models;
 using Microsoft.EntityFrameworkCore;
+using MySql.EntityFrameworkCore.Extensions;
 using System;
 using System.Security.Claims;
 
@@ -34,14 +36,14 @@ namespace Barbearia.Services.Schedule
                 var userId = int.Parse(userIdClaim.Value);
                 var dateTime = createScheduleDto.DateTime;
 
-                // cliente já tem horario marcado para este dia?.
-                var existingSchedule = await _context.Schedules
-                .Where(s => s.UserId == userId && s.DateTime.Date == dateTime.Date)
-                .FirstOrDefaultAsync();
+                // cliente já tem 2 horarios marcados para este dia?.
+                var existingSchedules = await _context.Schedules
+                    .Where(s => s.UserId == userId && s.DateTime.Date == dateTime.Date)
+                    .ToListAsync();
 
-                if (existingSchedule != null)
+                if (existingSchedules.Count >= 2)
                 {
-                    response.Message = "Você já tem um agendamento para este dia.";
+                    response.Message = "Você já atingiu o limite de 2 agendamentos para este dia.";
                     response.Status = false;
                     return response;
                 }
@@ -165,6 +167,11 @@ namespace Barbearia.Services.Schedule
                     .Include(s => s.Barber)
                     .OrderBy(s => s.DateTime)
                     .ToListAsync();
+                if (barberId == 0)
+                {
+                    response.Message = "Babeiro não selecionado corretamente!";
+                    return response;
+                }
                 if (schedules.Count <= 0)
                 {
                     response.Message = "Nenhum agendamento para este colaborador";
@@ -182,10 +189,46 @@ namespace Barbearia.Services.Schedule
             }
         }
 
+        public async Task<ResponseModel<List<ScheduleModel>>> ListSchedulesByCurrentUserId(DateTime dateIni, DateTime dateFim)
+        {
+            ResponseModel<List<ScheduleModel>> response = new ResponseModel<List<ScheduleModel>>();
+
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                {
+                    response.Message = "Usuário não encontrado.";
+                    response.Status = false;
+                    return response;
+                }
+
+                var currentUserId = int.Parse(userIdClaim.Value);
+                var schedules = await _context.Schedules
+                   .Where(s => s.DateTime.Date >= dateIni.Date && s.DateTime.Date <= dateFim.Date && s.UserId == currentUserId)
+                   .Include(s => s.User)
+                   .OrderBy(s => s.DateTime)
+                   .ToListAsync();
+
+                if (schedules.Count <= 0)
+                {
+                    response.Message = "Nenhum agendamento para este colaborador";
+                    return response;
+                }
+                response.Dados = schedules;
+                response.Message = "Agendamentos coletados!";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.Message = ex.Message;
+                response.Status = false;
+                return response;
+            }
+        }
         public async Task<ResponseModel<ScheduleModel>> UpdateSchedule(UpdateScheduleDto updateScheduleDto)
         {
             ResponseModel<ScheduleModel> response = new ResponseModel<ScheduleModel>();
-
             try
             {
                 var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
@@ -216,14 +259,19 @@ namespace Barbearia.Services.Schedule
                     return response;
                 }
 
-                var schedule = new ScheduleModel()
+                var schedule = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == updateScheduleDto.Id);
+                if (schedule == null)
                 {
-                    Id = updateScheduleDto.Id,
-                    DateTime = dateTime,
-                    CutTheHair = false,
-                    BarberId = updateScheduleDto.BarberId,
-                    UserId = userId,
-                };
+                    response.Message = "Nenhum agendamento localizado!";
+                    return response;
+                }
+
+                schedule.Id = updateScheduleDto.Id;
+                schedule.DateTime = dateTime;
+                schedule.CutTheHair = false;
+                schedule.BarberId = updateScheduleDto.BarberId;
+                schedule.UserId = userId;
+
                 _context.Update(schedule);
                 await _context.SaveChangesAsync();
 
@@ -242,14 +290,20 @@ namespace Barbearia.Services.Schedule
 
         public async Task<bool> IsSlotAvailable(DateTime dateTime, int barberId)
         {
-            // dia util?
+            // Especifica que o DateTime é no horário local
+            dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Local);
+
+            // Verifica se é um dia não útil (domingo)
             if (dateTime.DayOfWeek == DayOfWeek.Sunday)
             {
                 return false;
             }
 
+            // Ajuste para comparar corretamente com o banco de dados
             var reservedSlot = await _context.Schedules
-                .AnyAsync(s => s.DateTime == dateTime && s.BarberId == barberId);
+                .AnyAsync(s =>
+                    s.BarberId == barberId &&
+                    s.DateTime == dateTime); // Comparação direta no horário local
 
             return !reservedSlot;
         }

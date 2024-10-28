@@ -9,5 +9,7 @@ namespace Barbearia.Dto.Product
         public IFormFile Image { get; set; }
         [Required]
         public int AmountInPoints { get; set; }
+        [Required]
+        public int CategoryId { get; set; }
     }
 }

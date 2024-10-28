@@ -25,10 +25,20 @@ namespace Barbearia.Controllers
             return Ok(points);
         }
 
-        [HttpPost("CreatePoint")]
-        public async Task<ActionResult<ResponseModel<List<PointModel>>>> CreatePoint(int scheduleId)
+        public class CreatePointRequest
         {
-            var point = await _pointInterface.CreatePoint(scheduleId);
+            public int ScheduleId { get; set; }
+        }
+
+        [HttpPost("CreatePoint")]
+        public async Task<ActionResult<ResponseModel<PointModel>>> CreatePoint([FromBody] CreatePointRequest request)
+        {
+            if (request.ScheduleId <= 0)
+            {
+                return BadRequest("ID do agendamento inválido.");
+            }
+
+            var point = await _pointInterface.CreatePoint(request.ScheduleId);
             return Ok(point);
         }
 

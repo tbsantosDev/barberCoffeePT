@@ -31,21 +31,24 @@ namespace Barbearia.Controllers
             var product = await _productInterface.ProductsById(id);
             return Ok(product);
         }
-
+        [HttpGet("ListProductsByCategoryId/{id}")]
+        public async Task<ActionResult<ResponseModel<List<ProductModel>>>> ListProductsByCategoryId(int id)
+        {
+            var products = await _productInterface.ListProductsByCategoryId(id);
+            return Ok(products);
+        }
         [HttpPost("CreateProduct")]
         public async Task<ActionResult<ResponseModel<ProductModel>>> CreateProduct(CreateProductDto createProductDto)
         {
             var product = await _productInterface.CreateProduct(createProductDto);
             return Ok(product);
         }
-
         [HttpPut("UpdateProduct")]
         public async Task<ActionResult<ResponseModel<ProductModel>>> UpdateProduct(UpdateProductDto updateProductDto)
         {
             var product = await _productInterface.UpdateProduct(updateProductDto);
             return Ok(product);
         }
-
         [HttpDelete("DeleteProduct/{id}")]
         public async Task<ActionResult<ResponseModel<ProductModel>>> DeleteProduct(int id)
         {

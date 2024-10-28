@@ -18,7 +18,9 @@ namespace Barbearia.Models
         public string Password { get; set; }
         public RoleEnums Role { get; set; }
         public bool EmailConfirmed { get; set; } = false;
-        public string EmailConfirmationToken { get; set; }
+        public string? EmailConfirmationToken { get; set; }
+        public string? PasswordResetToken { get; set; }
+        public DateTime? PasswordResetTokenExpires { get; set; }
         [JsonIgnore]
         public ICollection<ScheduleModel> Schedules { get; set; }
         [JsonIgnore]

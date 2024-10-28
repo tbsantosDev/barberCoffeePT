@@ -17,6 +17,7 @@ namespace Barbearia.Services.Product
         {
             ResponseModel<ProductModel> response = new ResponseModel<ProductModel>();
 
+
             try
             {
                 if (createProductDto.Image != null && createProductDto.Image.Length > 0)
@@ -29,7 +30,8 @@ namespace Barbearia.Services.Product
                     {
                         Name = createProductDto.Name,
                         Image = imageBytes,
-                        AmountInPoints = createProductDto.AmountInPoints
+                        AmountInPoints = createProductDto.AmountInPoints,
+                        CategoryId = createProductDto.CategoryId,
                     };
 
                     _context.Products.Add(product);
@@ -100,6 +102,36 @@ namespace Barbearia.Services.Product
             }
         }
 
+        public async Task<ResponseModel<List<ProductModel>>> ListProductsByCategoryId(int categoryId)
+        {
+            ResponseModel<List<ProductModel>> response = new ResponseModel<List<ProductModel>>();
+
+            try
+            {
+                var productByCategoryId = await _context.Products
+                    .Where(pC => pC.CategoryId == categoryId)
+                    .Include(pC => pC.Category)
+                    .OrderBy(pC => pC.Name)
+                    .ToListAsync();
+
+                if (productByCategoryId.Count <= 0)
+                {
+                    response.Message = "Nenhum produto localizado!";
+                    return response;
+                }
+
+                response.Dados = productByCategoryId;
+                response.Message = "Produtos da categoria coletados.";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.Message= ex.Message;
+                response.Status = false;
+                return response;
+            }
+        }
+
         public async Task<ResponseModel<ProductModel>> ProductsById(int id)
         {
             ResponseModel<ProductModel> response = new ResponseModel<ProductModel>();
@@ -139,6 +171,7 @@ namespace Barbearia.Services.Product
 
                 product.Name = updateProductDto.Name;
                 product.AmountInPoints = updateProductDto.AmountInPoints;
+                product.CategoryId = updateProductDto.CategoryId;
 
                 if (updateProductDto.Image != null && updateProductDto.Image.Length > 0)
                 {

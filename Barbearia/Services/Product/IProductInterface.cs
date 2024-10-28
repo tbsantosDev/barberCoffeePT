@@ -6,6 +6,7 @@ namespace Barbearia.Services.Product
     public interface IProductInterface
     {
         Task<ResponseModel<List<ProductModel>>> ListProducts();
+        Task<ResponseModel<List<ProductModel>>> ListProductsByCategoryId(int categoryId);
         Task<ResponseModel<ProductModel>> ProductsById(int id);
         Task<ResponseModel<ProductModel>> CreateProduct(CreateProductDto createProductDto);
         Task<ResponseModel<ProductModel>> UpdateProduct(UpdateProductDto updateProductDto);

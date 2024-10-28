@@ -15,7 +15,6 @@ namespace Barbearia.Services.Point
         public async Task<ResponseModel<PointModel>> CreatePoint(int scheduleId)
         {
             ResponseModel<PointModel> response = new ResponseModel<PointModel>();
-
             try
             {
                 var schedule = await _context.Schedules.FirstOrDefaultAsync(s => s.Id == scheduleId);
