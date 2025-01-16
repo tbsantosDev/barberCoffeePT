@@ -43,7 +43,7 @@ dotnet run
 O backend estará disponível no endereço:
 
 ```
-http://localhost:5000
+https://localhost:7120 ou http://localhost:5283
 ```
 
 ## ▶️ Funcionalidades
@@ -58,17 +58,6 @@ http://localhost:5000
 - **[Entity Framework Core](https://docs.microsoft.com/ef/):** ORM para gerenciamento do banco de dados.
 - **[MySQL](https://www.mysql.com/):** Sistema de gerenciamento de banco de dados.
 - **[JWT](https://jwt.io/):** Implementação de autenticação segura.
-
-## 🚀 Deploy
-
-Para realizar o deploy da aplicação, utilize um servidor web como o IIS ou conteinerize com Docker. Aqui está um exemplo básico de Dockerfile:
-
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-WORKDIR /app
-COPY . .
-ENTRYPOINT ["dotnet", "BarbeariaBackend.dll"]
-```
 
 ## 🤝 Contribuindo
 
